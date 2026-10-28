@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0C2340">
+  <title>The Scoreboard is Locked — AP Statistics Unit 2</title>
+  <style>
+    :root {
+      --navy: #0C2340;
+      --gold: #FFD600;
+      --white: #FFFFFF;
+      --panel-ink: #10243b;
+      --scenario: #edf3f8;
+      --green: #16a34a;
+      --red: #dc2626;
+      --cyan: #22d3ee;
+      --muted: #afc2d6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--white);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(ellipse at 50% -15%, #24466d 0%, #132f50 36%, var(--navy) 75%);
+    }
+
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .hidden { display: none !important; }
+
+    #app { min-height: 100vh; display: flex; flex-direction: column; }
+    .site-header, .site-footer { width: min(1100px, calc(100% - 32px)); margin: 0 auto; }
+    .site-header { padding: 22px 0 12px; display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+    .brand { color: var(--gold); font-weight: 900; letter-spacing: .13em; text-transform: uppercase; font-size: .8rem; }
+    .timer { display: none; border: 2px solid var(--gold); border-radius: 12px; padding: 8px 13px; color: var(--gold); font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: .08em; background: #06172b99; }
+    .timer.active { display: block; }
+    .timer.urgent { color: #fff; border-color: var(--red); background: #7f1d1d; animation: pulse 1s infinite; }
+    @keyframes pulse { 50% { box-shadow: 0 0 0 5px #dc262644; } }
+
+    main { width: min(960px, calc(100% - 32px)); margin: auto; padding: 18px 0 38px; flex: 1; }
+    .start-card, .final-card { max-width: 760px; margin: 5vh auto 0; text-align: center; padding: clamp(24px, 6vw, 56px); border: 1px solid #ffffff30; border-radius: 24px; background: #071a30c9; box-shadow: 0 24px 70px #0005; }
+    .trophy { font-size: clamp(3.5rem, 10vw, 6rem); line-height: 1; margin-bottom: 18px; }
+    h1 { margin: 0; color: var(--gold); font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1.06; }
+    .subtitle { font-size: clamp(1rem, 3vw, 1.25rem); font-weight: 800; margin: 14px 0; }
+    .flavor { color: #d5e2ee; line-height: 1.7; max-width: 590px; margin: 18px auto 27px; }
+    .gold-button { border: 0; border-radius: 12px; background: var(--gold); color: var(--navy); padding: 14px 22px; font-weight: 950; letter-spacing: .06em; box-shadow: 0 5px 0 #b89b00; transition: transform .15s, box-shadow .15s; }
+    .gold-button:hover { transform: translateY(-2px); box-shadow: 0 7px 0 #b89b00; }
+    .gold-button:active { transform: translateY(2px); box-shadow: 0 2px 0 #b89b00; }
+    .gold-button:focus-visible, input:focus-visible, .solution-toggle:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+
+    .progress-wrap { margin: 10px 0 23px; }
+    .progress-label { color: #d4e2ef; text-align: center; margin-bottom: 10px; font-weight: 750; }
+    .progress { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .progress-item { border: 1px solid #ffffff2b; background: #071a30aa; border-radius: 10px; padding: 9px 5px; text-align: center; font-size: .78rem; font-weight: 800; color: #9db1c6; }
+    .progress-item.current { color: var(--gold); border-color: var(--gold); }
+    .progress-item.cleared { color: #86efac; border-color: var(--green); }
+
+    .room-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+    .room-kicker { text-transform: uppercase; color: var(--gold); letter-spacing: .13em; font-size: .75rem; font-weight: 900; }
+    .room-heading h2 { margin: 4px 0 0; font-size: clamp(1.4rem, 4vw, 2rem); }
+    .room-count { border: 1px solid #ffffff35; border-radius: 999px; padding: 7px 11px; font-weight: 800; white-space: nowrap; color: #d7e4ef; }
+    .scenario { background: var(--scenario); color: var(--panel-ink); border-left: 6px solid var(--gold); border-radius: 12px; padding: 16px 18px; margin-bottom: 17px; line-height: 1.55; }
+    .scenario strong { display: block; color: #34516e; font-size: .75rem; letter-spacing: .12em; margin-bottom: 4px; text-transform: uppercase; }
+    .problems { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .problem-card { color: var(--panel-ink); background: var(--white); border: 2px dashed #9baaba; border-radius: 15px; padding: 17px; position: relative; }
+    .problem-badge { display: inline-block; color: #594900; background: #fff2a8; border: 1px solid var(--gold); border-radius: 999px; padding: 4px 9px; font-size: .69rem; font-weight: 950; letter-spacing: .1em; margin-bottom: 11px; }
+    .problem-card h3 { font-size: 1rem; line-height: 1.5; margin: 0 0 12px; }
+    .answer-label { display: block; font-size: .85rem; font-weight: 800; margin-bottom: 6px; }
+    input[type="text"] { width: 100%; border: 2px solid #bdc9d6; border-radius: 9px; padding: 10px 11px; color: var(--panel-ink); background: #fff; }
+    input[type="text"]::-webkit-inner-spin-button, input[type="text"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .solution-toggle { display: inline-block; margin-top: 10px; padding: 0; border: 0; background: transparent; color: #174a7c; text-decoration: underline; font-size: .85rem; font-weight: 750; }
+    .solution { margin-top: 9px; padding: 10px; background: #edf3f8; border-radius: 8px; font-size: .9rem; line-height: 1.5; }
+    .feedback { min-height: 1.35em; margin-top: 8px; font-weight: 850; font-size: .86rem; }
+    .feedback.correct { color: var(--green); }
+    .feedback.incorrect { color: var(--red); }
+    .check-row { display: flex; justify-content: center; margin: 17px 0 0; }
+    .lock-zone { margin-top: 19px; padding: 19px; text-align: center; border: 2px solid var(--gold); border-radius: 16px; background: linear-gradient(145deg, #102c4d, #07182b); box-shadow: 0 0 26px #ffd6001b; }
+    .lock-zone h3 { color: var(--gold); margin: 0 0 7px; }
+    .sum-line { color: #e2edf6; margin: 8px 0 16px; line-height: 1.5; }
+    .dial-row { display: flex; justify-content: center; align-items: center; gap: 11px; margin: 13px auto; }
+    .dial { width: 67px; height: 76px; display: grid; place-items: center; border: 2px solid var(--gold); border-radius: 13px; color: #fff; font-size: 2.2rem; font-weight: 950; background: linear-gradient(145deg, #17385d, #06162a); font-variant-numeric: tabular-nums; }
+    .dial-button { min-width: 49px; min-height: 46px; border: 1px solid var(--gold); border-radius: 10px; color: var(--gold); background: #0b2038; font-weight: 950; font-size: 1.2rem; }
+    .confirm-button { margin-top: 9px; }
+    .lock-feedback { min-height: 1.4em; margin: 11px 0 0; font-weight: 950; color: var(--gold); letter-spacing: .1em; }
+    @keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+    @keyframes flash { 0%, 100% { box-shadow: 0 0 0 0 #16a34a00; } 50% { box-shadow: 0 0 0 12px #16a34a66; } }
+    .shake { animation: shake .42s ease; }
+    .flash { animation: flash .72s ease; }
+
+    .site-footer { padding: 18px 0 23px; text-align: center; color: #b6c8d9; font-size: .82rem; border-top: 1px solid #ffffff20; }
+
+    .final-card { max-width: 840px; margin-top: 2vh; overflow: hidden; }
+    .final-card h2 { color: var(--gold); margin: 0 0 8px; font-size: clamp(1.7rem, 5vw, 2.6rem); }
+    .final-card p { color: #d5e2ee; line-height: 1.6; }
+    .mini-dials { display: flex; justify-content: center; gap: 9px; margin: 20px 0 23px; }
+    .mini-dial { width: 49px; height: 56px; display: grid; place-items: center; color: var(--gold); border: 2px solid var(--gold); border-radius: 9px; background: var(--navy); font-weight: 950; font-size: 1.5rem; }
+    .vault-scene { width: min(320px, 78vw); height: 280px; position: relative; margin: 18px auto 21px; perspective: 950px; }
+    .vault-frame { position: absolute; inset: 0; border: 9px solid #73808b; border-radius: 18px; background: radial-gradient(circle at center, #202e39 0%, #111a23 65%); box-shadow: inset 0 0 0 4px #aab3bb, 0 15px 30px #0008; overflow: visible; }
+    .vault-door { position: absolute; inset: 4px; border: 3px solid #c4cbd0; border-radius: 10px; transform-origin: left center; background: repeating-linear-gradient(135deg, #687782 0 13px, #53616b 13px 26px, #87929a 26px 31px); box-shadow: inset 0 0 0 7px #34434e, inset 0 0 0 11px #a7afb4; transition: transform 1s cubic-bezier(.55,.05,.35,1); transform-style: preserve-3d; z-index: 2; }
+    .vault-door::before { content: ""; position: absolute; width: 96px; height: 96px; border: 8px solid #d2d7db; border-radius: 50%; left: 50%; top: 50%; transform: translate(-50%, -50%); box-shadow: inset 0 0 0 8px #43525c, 0 0 0 4px #43525c; }
+    .vault-door::after { content: "✦"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 2.4rem; color: var(--gold); text-shadow: 0 1px 4px #000; }
+    .vault-door.open { transform: rotateY(-112deg); }
+    .vault-glow { position: absolute; inset: 18px; border-radius: 10px; background: radial-gradient(ellipse, #ffd6007a, #22d3ee22 38%, transparent 72%); opacity: 0; transition: opacity .7s; }
+    .vault-glow.on { opacity: 1; }
+    .victory { display: none; position: relative; z-index: 3; color: var(--gold); font-weight: 1000; letter-spacing: .04em; font-size: clamp(1.35rem, 4vw, 2rem); line-height: 1.35; }
+    .victory.show { display: block; animation: victoryIn .55s ease both; }
+    @keyframes victoryIn { from { opacity: 0; transform: translateY(12px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .confetti { position: fixed; top: -18px; width: 10px; height: 15px; z-index: 9; pointer-events: none; animation: fall linear forwards; }
+    @keyframes fall { to { transform: translate3d(var(--drift), 110vh, 0) rotate(850deg); opacity: .85; } }
+
+    @media (max-width: 650px) {
+      .problems { grid-template-columns: 1fr; }
+      .progress { gap: 4px; }
+      .progress-item { font-size: .67rem; padding: 8px 2px; }
+      .room-heading { align-items: center; }
+      .site-header { align-items: flex-start; }
+      .brand { max-width: 165px; line-height: 1.5; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header class="site-header">
+      <div class="brand">Steve's AP Stats Lab</div>
+      <div id="timer" class="timer" aria-live="polite">45:00</div>
+    </header>
+    <main id="main-content">
+      <section id="start-screen" class="start-card" aria-labelledby="start-title">
+        <div class="trophy" aria-hidden="true">🏆</div>
+        <h1 id="start-title">The Scoreboard is Locked</h1>
+        <p class="subtitle">AP Statistics Unit 2 Escape Room</p>
+        <p class="flavor">The stadium scoreboard has gone dark, and the championship is about to begin. Solve probability challenges across five sports operations rooms, discover each room's hidden dial digit, and restore the stadium systems before time runs out.</p>
+        <button class="gold-button" type="button" data-action="begin">BEGIN INVESTIGATION</button>
+      </section>
+      <section id="game-screen" class="hidden" aria-live="polite"></section>
+      <section id="final-screen" class="final-card hidden" aria-live="polite">
+        <div class="room-kicker">Final security vault</div>
+        <h2>All five room locks are cleared!</h2>
+        <p>The verified room digits are assembled. Stand by while the scoreboard vault opens.</p>
+        <div class="mini-dials" aria-label="Vault combination">
+          <span class="mini-dial">0</span><span class="mini-dial">4</span><span class="mini-dial">7</span><span class="mini-dial">3</span><span class="mini-dial">2</span>
+        </div>
+        <div class="vault-scene" aria-label="A steel vault door opening">
+          <div class="vault-frame"><div id="vault-glow" class="vault-glow"></div><div id="vault-door" class="vault-door"></div></div>
+        </div>
+        <div id="victory-message" class="victory">SCOREBOARD RESTORED! The stadium systems are back online.</div>
+      </section>
+    </main>
+    <footer class="site-footer">Five rooms • Probability rules • Multiplication rule • Independence</footer>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const app = document.getElementById("app");
+      const startScreen = document.getElementById("start-screen");
+      const gameScreen = document.getElementById("game-screen");
+      const finalScreen = document.getElementById("final-screen");
+      const timerDisplay = document.getElementById("timer");
+
+      const rooms = [
+        {
+          name: "THE ANALYTICS LAB",
+          scenario: "At a sports analytics firm, 65% of analysts specialize in offense, 48% specialize in defense, and 22% specialize in both.",
+          problems: [
+            { prompt: "What is the probability that a randomly selected analyst specializes in offense OR defense? Round to 4 decimal places.", answer: 0.9100, solution: "P(O ∪ D) = 0.65 + 0.48 − 0.22 = 0.9100" },
+            { prompt: "What is the probability that a randomly selected analyst specializes in NEITHER offense NOR defense? Round to 4 decimal places.", answer: 0.0900, solution: "P(neither) = 1 − 0.9100 = 0.0900" }
+          ],
+          sum: "0.9100 + 0.0900 = 1.0000",
+          digit: 0
+        },
+        {
+          name: "THE COACHING BOOTH",
+          scenario: "A basketball player makes 72% of free throws. She takes two free throws independently.",
+          problems: [
+            { prompt: "What is the probability she makes BOTH free throws? Round to 4 decimal places.", answer: 0.5184, solution: "P(both) = 0.72 × 0.72 = 0.5184" },
+            { prompt: "What is the probability she makes AT LEAST ONE free throw? Round to 4 decimal places.", answer: 0.9216, solution: "P(at least one) = 1 − (0.28 × 0.28) = 1 − 0.0784 = 0.9216" }
+          ],
+          sum: "0.5184 + 0.9216 = 1.4400",
+          digit: 4
+        },
+        {
+          name: "THE PRESS BOX",
+          scenario: "In a soccer league, 55% of matches are won by the home team, 30% are drawn, and 15% are won by the away team. Two matches are played independently.",
+          problems: [
+            { prompt: "What is the probability that BOTH matches are won by the home team? Round to 4 decimal places.", answer: 0.3025, solution: "P(both home wins) = 0.55 × 0.55 = 0.3025" },
+            { prompt: "What is the probability that NEITHER match is a draw? Round to 4 decimal places.", answer: 0.4900, solution: "P(not draw) = 0.70; P(neither draw) = 0.70 × 0.70 = 0.4900" }
+          ],
+          sum: "0.3025 + 0.4900 = 0.7925",
+          digit: 7
+        },
+        {
+          name: "THE FILM ROOM",
+          scenario: "A football team's quarterback completes 68% of passes. On a given drive, he throws 3 passes independently.",
+          problems: [
+            { prompt: "What is the probability he completes ALL THREE passes? Round to 4 decimal places.", answer: 0.3144, solution: "0.68³ = 0.314432 ≈ 0.3144" },
+            { prompt: "What is the probability he completes NONE of the three passes? Round to 4 decimal places.", answer: 0.0328, solution: "0.32³ = 0.032768 ≈ 0.0328" }
+          ],
+          sum: "0.3144 + 0.0328 = 0.3472",
+          digit: 3
+        },
+        {
+          name: "THE LOCKER ROOM",
+          scenario: "In a half-court shot drill, each of two shots has a 20% chance of scoring. The shots are independent.",
+          problems: [
+            { prompt: "What is the probability BOTH shots score? Round to 4 decimal places.", answer: 0.0400, solution: "P(both) = 0.20 × 0.20 = 0.0400" },
+            { prompt: "What is the probability the FIRST shot scores and the SECOND shot misses? Round to 4 decimal places.", answer: 0.1600, solution: "P(first scores, second misses) = 0.20 × 0.80 = 0.1600" }
+          ],
+          sum: "0.0400 + 0.1600 = 0.2000",
+          digit: 2
+        }
+      ];
+
+      let currentRoom = 0;
+      let secondsRemaining = 2700;
+      let timerInterval = null;
+      let dialValue = 0;
+      let advancing = false;
+
+      function renderProgress() {
+        return '<div class="progress-wrap"><div class="progress-label">Investigation progress</div><div class="progress" role="list">' + rooms.map(function (room, index) {
+          let stateClass = "locked";
+          let stateText = "🔒 locked";
+          if (index < currentRoom) {
+            stateClass = "cleared";
+            stateText = "✅ cleared";
+          } else if (index === currentRoom) {
+            stateClass = "current";
+            stateText = "🔓 current";
+          }
+          return '<div class="progress-item ' + stateClass + '" role="listitem">' + stateText + '<br>Room ' + (index + 1) + '</div>';
+        }).join("") + '</div></div>';
+      }
+
+      function renderRoom() {
+        const room = rooms[currentRoom];
+        dialValue = 0;
+        advancing = false;
+        gameScreen.innerHTML = renderProgress() +
+          '<div class="room-heading"><div><div class="room-kicker">Sports operations • Unit 2</div><h2>' + room.name + '</h2></div><div class="room-count">Room ' + (currentRoom + 1) + ' / 5</div></div>' +
+          '<div class="scenario"><strong>Scenario</strong>' + room.scenario + '</div>' +
+          '<div class="problems">' + room.problems.map(function (problem, index) {
+            return '<article class="problem-card" data-problem="' + index + '"><span class="problem-badge">PROBLEM ' + (index + 1) + '</span><h3>' + problem.prompt + '</h3><label class="answer-label" for="answer-' + index + '">Your probability (decimal)</label><input id="answer-' + index + '" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Answer for problem ' + (index + 1) + '"><button class="solution-toggle" type="button" data-action="toggle-solution" aria-expanded="false">Show worked solution</button><div class="solution hidden">' + problem.solution + '</div><div class="feedback" aria-live="polite"></div></article>';
+          }).join("") + '</div>' +
+          '<div class="check-row"><button class="gold-button" type="button" data-action="check-answers">CHECK ANSWERS</button></div>' +
+          '<section id="lock-zone" class="lock-zone hidden" aria-live="polite"><h3>ROOM LOCK ZONE</h3><div class="sum-line">Add your two answers: <strong>' + room.sum + '</strong><br>Its tenths digit is the dial code.</div><div class="dial-row"><button class="dial-button" type="button" data-action="dial-down" aria-label="Decrease dial digit">−</button><div id="dial" class="dial" aria-label="Current dial digit">0</div><button class="dial-button" type="button" data-action="dial-up" aria-label="Increase dial digit">+</button></div><button class="gold-button confirm-button" type="button" data-action="confirm-dial">CONFIRM</button><div id="lock-feedback" class="lock-feedback" aria-live="polite"></div></section>';
+      }
+
+      function updateTimer() {
+        const minutes = Math.floor(secondsRemaining / 60);
+        const seconds = secondsRemaining % 60;
+        timerDisplay.textContent = String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+        timerDisplay.classList.toggle("urgent", secondsRemaining < 300);
+      }
+
+      function startGame() {
+        startScreen.classList.add("hidden");
+        finalScreen.classList.add("hidden");
+        gameScreen.classList.remove("hidden");
+        timerDisplay.classList.add("active");
+        currentRoom = 0;
+        secondsRemaining = 2700;
+        updateTimer();
+        renderRoom();
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(function () {
+          if (secondsRemaining > 0) {
+            secondsRemaining -= 1;
+            updateTimer();
+          } else {
+            clearInterval(timerInterval);
+            timerDisplay.textContent = "00:00";
+            timerDisplay.classList.add("urgent");
+          }
+        }, 1000);
+      }
+
+      function checkAnswers() {
+        const room = rooms[currentRoom];
+        let allCorrect = true;
+        room.problems.forEach(function (problem, index) {
+          const input = document.getElementById("answer-" + index);
+          const card = input.closest(".problem-card");
+          const feedback = card.querySelector(".feedback");
+          const value = parseFloat(input.value);
+          if (Number.isFinite(value) && Math.abs(value - problem.answer) < 0.00015) {
+            feedback.textContent = "Correct — probability confirmed.";
+            feedback.className = "feedback correct";
+            input.setAttribute("aria-invalid", "false");
+          } else {
+            allCorrect = false;
+            feedback.textContent = "Not quite. Check your probability rule and try again.";
+            feedback.className = "feedback incorrect";
+            input.setAttribute("aria-invalid", "true");
+          }
+        });
+        if (allCorrect) {
+          document.getElementById("lock-zone").classList.remove("hidden");
+          document.getElementById("lock-zone").scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      }
+
+      function updateDial() {
+        const dial = document.getElementById("dial");
+        if (dial) dial.textContent = String(dialValue);
+      }
+
+      function confirmDial() {
+        if (advancing) return;
+        const zone = document.getElementById("lock-zone");
+        const feedback = document.getElementById("lock-feedback");
+        if (dialValue === rooms[currentRoom].digit) {
+          advancing = true;
+          zone.classList.add("flash");
+          feedback.textContent = "UNLOCKED!";
+          if (currentRoom === rooms.length - 1) {
+            setTimeout(showFinalScreen, 1500);
+          } else {
+            setTimeout(function () {
+              currentRoom += 1;
+              renderRoom();
+              gameScreen.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 1500);
+          }
+        } else {
+          zone.classList.remove("shake");
+          void zone.offsetWidth;
+          zone.classList.add("shake");
+          feedback.textContent = "Incorrect digit — the dial resets to 0.";
+          dialValue = 0;
+          updateDial();
+        }
+      }
+
+      function showFinalScreen() {
+        clearInterval(timerInterval);
+        gameScreen.classList.add("hidden");
+        finalScreen.classList.remove("hidden");
+        finalScreen.scrollIntoView({ behavior: "smooth", block: "start" });
+        setTimeout(function () {
+          document.getElementById("vault-door").classList.add("open");
+          document.getElementById("vault-glow").classList.add("on");
+          setTimeout(function () {
+            document.getElementById("victory-message").classList.add("show");
+            launchConfetti();
+          }, 1400);
+        }, 1000);
+      }
+
+      function launchConfetti() {
+        const colors = ["#FFD600", "#FFFFFF", "#22d3ee", "#ec4899", "#16a34a"];
+        for (let index = 0; index < 110; index += 1) {
+          const piece = document.createElement("span");
+          piece.className = "confetti";
+          piece.style.left = Math.random() * 100 + "vw";
+          piece.style.backgroundColor = colors[index % colors.length];
+          piece.style.setProperty("--drift", (Math.random() * 220 - 110) + "px");
+          piece.style.animationDuration = (2.5 + Math.random() * 3.5) + "s";
+          piece.style.animationDelay = (Math.random() * 0.8) + "s";
+          piece.style.opacity = String(0.65 + Math.random() * 0.35);
+          document.body.appendChild(piece);
+          setTimeout(function () { piece.remove(); }, 7000);
+        }
+      }
+
+      app.addEventListener("wheel", function (event) {
+        if (event.target instanceof HTMLInputElement && event.target.type === "text") {
+          event.preventDefault();
+        }
+      }, { passive: false });
+
+      app.addEventListener("click", function (event) {
+        const target = event.target instanceof Element ? event.target.closest("[data-action]") : null;
+        if (!target || !app.contains(target)) return;
+        const action = target.dataset.action;
+
+        if (action === "begin") {
+          startGame();
+        } else if (action === "toggle-solution") {
+          const solution = target.parentElement.querySelector(".solution");
+          const isHidden = solution.classList.toggle("hidden");
+          target.textContent = isHidden ? "Show worked solution" : "Hide worked solution";
+          target.setAttribute("aria-expanded", String(!isHidden));
+        } else if (action === "check-answers") {
+          checkAnswers();
+        } else if (action === "dial-up") {
+          dialValue = (dialValue + 1) % 10;
+          updateDial();
+        } else if (action === "dial-down") {
+          dialValue = (dialValue + 9) % 10;
+          updateDial();
+        } else if (action === "confirm-dial") {
+          confirmDial();
+        }
+      });
+
+      app.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" && event.target instanceof HTMLInputElement && event.target.type === "text") {
+          const checkButton = gameScreen.querySelector('[data-action="check-answers"]');
+          if (checkButton && app.contains(checkButton)) checkAnswers();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
